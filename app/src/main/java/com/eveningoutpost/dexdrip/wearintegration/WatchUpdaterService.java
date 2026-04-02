@@ -158,6 +158,8 @@ public class WatchUpdaterService extends WearableListenerService implements
     private static final String WEARABLE_APK_DELIVERY = "/xdrip_plus_here_is_apk";
     private static final String WEARABLE_G5_QUEUE_PATH = "/xdrip_plus_watch_g5_queue";
     public static final String WEARABLE_G5BATTERY_PAYLOAD = "/xdrip_plus_battery_payload";
+    // Inbound: watch requests phone to evaluate disabling Force Wear due to missed readings
+    private static final String WEARABLE_DISABLE_FORCE_WEAR_PATH = "/xdrip_plus_watch_disable_force_wear";
     private static final String CAPABILITY_WEAR_APP = "wear_app_sync_bgs";
     private static final String LAST_RECORD_TIMESTAMP = "wear-sync-last-treatment-record-ts";
     private static String localnode = "";
@@ -1433,6 +1435,23 @@ public class WatchUpdaterService extends WearableListenerService implements
                         }
                         break;
 
+                    case WEARABLE_DISABLE_FORCE_WEAR_PATH:
+                        // The watch Ob1 collector has reported extended missed readings.
+                        // Only act if the user has opted in to automatic fallback.
+                        Log.d(TAG, "onMessageReceived WEARABLE_DISABLE_FORCE_WEAR_PATH");
+                        if (Pref.getBooleanDefaultFalse("disable_wearG5_on_missedreadings")) {
+                            final int wearMissedMinutes = readPrefsInt(mPrefs, "disable_wearG5_on_missedreadings_level", 30);
+                            Log.e(TAG, "Watch requested Force Wear disable after " + wearMissedMinutes + " missed minutes - honouring");
+                            Pref.setBoolean("force_wearG5", false);
+                            final String msgDisableWear = getResources().getString(
+                                    R.string.notify_disable_wearG5_on_missedreadings, wearMissedMinutes);
+                            JoH.static_toast_long(msgDisableWear);
+                            sendWearLocalToast(msgDisableWear, Toast.LENGTH_LONG);
+                            CollectionServiceStarter.restartCollectionServiceBackground();
+                        } else {
+                            Log.d(TAG, "Watch requested Force Wear disable but opt-in preference is off - ignoring");
+                        }
+                        break;
 
                     default:
 

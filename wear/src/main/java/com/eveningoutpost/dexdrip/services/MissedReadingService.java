@@ -21,13 +21,12 @@ import com.eveningoutpost.dexdrip.utilitymodels.Notifications;
 //import com.eveningoutpost.dexdrip.UtilityModels.pebble.PebbleWatchSync;
 import com.eveningoutpost.dexdrip.utilitymodels.Pref;
 import com.eveningoutpost.dexdrip.utils.DexCollectionType;
-//import com.eveningoutpost.dexdrip.wearintegration.WatchUpdaterService;
+import com.eveningoutpost.dexdrip.ListenerService;
 
 import java.util.Date;
 
 import static com.eveningoutpost.dexdrip.utils.DexCollectionType.getLocalServiceCollectingState;
 
-//import static com.eveningoutpost.dexdrip.Home.startWatchUpdaterService;
 
 public class MissedReadingService extends IntentService {
     int otherAlertSnooze;
@@ -58,13 +57,18 @@ public class MissedReadingService extends IntentService {
             // update pebble even when we don't have data to ensure missed readings show
         }*/
 
-        /*if ((Home.get_forced_wear()) && prefs.getBoolean("disable_wearG5_on_missedreadings", false)) {
-            int bg_wear_missed_minutes = readPerfsInt(prefs, "disable_wearG5_on_missedreadings_level", 30);
-            if (BgReading.getTimeSinceLastReading() >= (bg_wear_missed_minutes * 1000 * 60)) {
-                Log.d(TAG, "Request WatchUpdaterService to disable force_wearG5 when wear is connected");
-                startWatchUpdaterService(context, WatchUpdaterService.ACTION_DISABLE_FORCE_WEAR, TAG);
+        // Ob1 missed-reading fallback: if Force Wear is active and readings have been
+        // absent longer than the configured threshold, ask the phone to evaluate whether
+        // to disable Force Wear and restart its own collector.
+        // The phone checks its own disable_wearG5_on_missedreadings preference before acting,
+        // so this request is safe to send unconditionally when get_forced_wear() is true.
+        if (Home.get_forced_wear()) {
+            final int wearMissedMinutes = readPerfsInt(prefs, "disable_wearG5_on_missedreadings_level", 30);
+            if (BgReading.getTimeSinceLastReading() >= (wearMissedMinutes * 1000L * 60)) {
+                Log.d(TAG, "Readings missing > " + wearMissedMinutes + " min - requesting phone to evaluate Force Wear disable");
+                ListenerService.requestPhoneDisableForceWear(context);
             }
-        }*/
+        }
 
         if ((prefs.getBoolean("aggressive_service_restart", false) || DexCollectionType.isFlakey())) {//!Home.get_enable_wear() &&
             if (!BgReading.last_within_millis(stale_millis) && Sensor.isActive() && (!getLocalServiceCollectingState())) {

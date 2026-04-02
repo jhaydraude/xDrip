@@ -143,6 +143,8 @@ public class ListenerService extends WearableListenerService implements GoogleAp
     private static final String WEARABLE_SENSOR_DATA_PATH = "/xdrip_plus_watch_sensor_data";//KS
     private static final String WEARABLE_PREF_DATA_PATH = "/xdrip_plus_watch_pref_data";//KS
     private static final String WEARABLE_ACTIVEBTDEVICE_DATA_PATH = "/xdrip_plus_watch_activebtdevice_data";//KS
+    // Sent by watch to request the phone disable Force Wear after extended missed readings
+    public static final String WEARABLE_DISABLE_FORCE_WEAR_PATH = "/xdrip_plus_watch_disable_force_wear";
     private static final String WEARABLE_ALERTTYPE_DATA_PATH = "/xdrip_plus_watch_alerttype_data";//KS
     public static final String WEARABLE_SNOOZE_ALERT = "/xdrip_plus_snooze_payload";
     private static final String DATA_ITEM_RECEIVED_PATH = "/xdrip_plus_data-item-received";//KS
@@ -2559,6 +2561,22 @@ public class ListenerService extends WearableListenerService implements GoogleAp
         intent.putExtra(WEARABLE_FIELD_SENDPATH, path);
         intent.putExtra(WEARABLE_FIELD_PAYLOAD, payload);
         context.startService(intent);
+    }
+
+    /**
+     * Called from MissedReadingService on the watch when the Ob1 collector has been
+     * failing long enough to warrant falling back to phone collection.
+     * Sends a message to the phone's WatchUpdaterService, which will check the
+     * disable_wearG5_on_missedreadings preference before acting.
+     * Rate-limited to at most once every 5 minutes to avoid flooding.
+     */
+    public static void requestPhoneDisableForceWear(Context context) {
+        if (JoH.ratelimit("disable-force-wear-request", 300)) {
+            UserError.Log.e(TAG, "Requesting phone to evaluate Force Wear disable due to missed readings");
+            SendData(context, WEARABLE_DISABLE_FORCE_WEAR_PATH, null);
+        } else {
+            UserError.Log.d(TAG, "requestPhoneDisableForceWear rate-limited");
+        }
     }
 
     private Node updatePhoneSyncBgsCapability(CapabilityInfo capabilityInfo) {
