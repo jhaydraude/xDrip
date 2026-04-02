@@ -1797,6 +1797,19 @@ public class WatchUpdaterService extends WearableListenerService implements
             dataMap.putBoolean("force_wearG5", force_wearG5);
             dataMap.putString("node_wearG5", node_wearG5);
             dataMap.putString("share_key", mPrefs.getString("share_key", "SM00000000"));//Used by DexShareCollectionService
+
+            // Pre-load transmitter MAC so watch can skip BLE scan on Ob1 path
+            if (dexCollector != null && dexCollector.contains("G5")) {
+                final String txid = mPrefs.getString("dex_txid", "");
+                if (!txid.isEmpty()) {
+                    final String mac = PersistentStore.getString("G5-mac-for-txid-" + txid);
+                    if (mac != null && mac.length() == 17) {
+                        dataMap.putString("transmitter_mac", mac);
+                        Log.d(TAG, "Syncing transmitter MAC to watch: " + mac);
+                    }
+                }
+            }
+
             //Advanced Bluetooth Settings used by G4+xBridge DexCollectionService - temporarily just use the Phone's settings
             dataMap.putBoolean("use_transmiter_pl_bluetooth", mPrefs.getBoolean("use_transmiter_pl_bluetooth", false));
             dataMap.putBoolean("use_rfduino_bluetooth", mPrefs.getBoolean("use_rfduino_bluetooth", false));

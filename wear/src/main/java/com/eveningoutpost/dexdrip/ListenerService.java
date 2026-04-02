@@ -1688,6 +1688,14 @@ public class ListenerService extends WearableListenerService implements GoogleAp
                 prefs.putString("dex_txid", dex_txid);
                 stopBtService();//Change requires collector restart
             }
+            
+            String transmitter_mac = dataMap.getString("transmitter_mac", "");
+            if (transmitter_mac.length() == 17) {
+                if (!dex_txid.isEmpty() && !dex_txid.equals("ABCDEF")) {
+                    PersistentStore.setString("G5-mac-for-txid-" + dex_txid, transmitter_mac);
+                    Log.d(TAG, "Stored pre-loaded transmitter MAC from phone: " + transmitter_mac);
+                }
+            }
 
             String share_key = dataMap.getString("share_key", "SM00000000");
             Log.d(TAG, "syncPrefData dataMap share_key=" + share_key);
