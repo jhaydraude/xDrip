@@ -2512,6 +2512,7 @@ public class ListenerService extends WearableListenerService implements GoogleAp
 
         // Display Activity to get user permission
         if (!mLocationPermissionApproved) {
+            UserError.Log.e(TAG, "MISSING Location/BLE scan permission - collector cannot start");
             if (JoH.ratelimit("location_permission", 20)) {
                 Intent permissionIntent = new Intent(getApplicationContext(), LocationPermissionActivity.class);
                 permissionIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -2523,7 +2524,7 @@ public class ListenerService extends WearableListenerService implements GoogleAp
         mLocationPermissionApproved =
                 ActivityCompat.checkSelfPermission(
                         getApplicationContext(),
-                        Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                        Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
         Log.d(TAG, "checkLocationPermissions mLocationPermissionApproved:" + mLocationPermissionApproved);
         return mLocationPermissionApproved;
     }
