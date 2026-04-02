@@ -466,7 +466,8 @@ public class Ob1G5CollectionService extends G5BaseService {
                 scan_next_run = false; // reset if set
                 transmitterMAC = null; // reset if set
                 last_scan_started = JoH.tsl();
-                scanWakeLock = JoH.getWakeLock("xdrip-jam-g5-scan", (int) Constants.MINUTE_IN_MS * 7);
+                // WearOS 3+ battery management can cut wake-locks early; use longer duration on Wear
+                scanWakeLock = JoH.getWakeLock("xdrip-jam-g5-scan", (int) Constants.MINUTE_IN_MS * (android_wear ? 10 : 7));
 
 
                 historicalTransmitterMAC = PersistentStore.getString(OB1G5_MACSTORE + transmitterID); // "" if unset
@@ -866,6 +867,15 @@ public class Ob1G5CollectionService extends G5BaseService {
             JoH.buggy_samsung = true;
         }
 
+        // WearOS 3+ (API 30+) uses aggressive Doze; treat all such devices as having
+        // buggy wakeup characteristics unless proven otherwise.
+        if (android_wear && Build.VERSION.SDK_INT >= 30) {
+            if (!JoH.buggy_samsung) {
+                UserError.Log.d(TAG, "WearOS 3+ device detected - enabling wake jitter workaround");
+                JoH.buggy_samsung = true;
+            }
+        }
+
         if (alwaysScanModels.contains(this_model)) {
             UserError.Log.e(TAG, "Always scan model exact match for: " + this_model);
             always_scan = true;
@@ -953,7 +963,7 @@ public class Ob1G5CollectionService extends G5BaseService {
             }
 
 
-            scheduleWakeUp(Constants.MINUTE_IN_MS * 6, "fail-over");
+            scheduleWakeUp(Constants.MINUTE_IN_MS * (android_wear ? 7 : 6), "fail-over");
             if ((state == BOND) || (state == PREBOND) || (state == DISCOVER) || (state == CONNECT))
                 state = SCAN;
 
